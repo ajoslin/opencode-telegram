@@ -13,7 +13,7 @@
  *   TELEGRAM_UPDATES_URL - URL to poll for updates (CF DO endpoint)
  */
 
-import { startServer, stopServer, getServer, type OpenCodeServer } from "./opencode"
+import { startServer, connectToServer, stopServer, getServer, type OpenCodeServer } from "./opencode"
 import { TelegramClient } from "./telegram"
 import { loadConfig } from "./config"
 import { createLogger } from "./log"
@@ -88,14 +88,26 @@ async function main() {
     process.exit(1)
   }
   
-  // Start OpenCode server
-  log("info", "Starting OpenCode server...")
-  const server = await startServer(directory)
-  log("info", "OpenCode server started", { 
-    port: server.port, 
-    baseUrl: `http://127.0.0.1:${server.port}`,
-    directory,
-  })
+  // Connect to OpenCode server (external URL or start our own)
+  const openCodeUrl = process.env.OPENCODE_URL
+  let server: OpenCodeServer
+  
+  if (openCodeUrl) {
+    log("info", "Connecting to external OpenCode server...", { url: openCodeUrl })
+    server = await connectToServer(openCodeUrl, directory)
+    log("info", "Connected to OpenCode server", { 
+      baseUrl: server.baseUrl,
+      directory,
+    })
+  } else {
+    log("info", "Starting OpenCode server...")
+    server = await startServer(directory)
+    log("info", "OpenCode server started", { 
+      port: server.port, 
+      baseUrl: server.baseUrl,
+      directory,
+    })
+  }
   
   // Initialize Telegram client for sending messages
   const telegram = new TelegramClient({

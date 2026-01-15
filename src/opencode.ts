@@ -20,11 +20,12 @@ import { createLogger } from "./log"
 const log = createLogger()
 
 export interface OpenCodeServer {
-  process: ChildProcess
+  process: ChildProcess | null  // null when connecting to external server
   client: OpencodeClient
   clientV2: OpencodeClientV2
   port: number
   directory: string
+  baseUrl: string
 }
 
 let server: OpenCodeServer | null = null
@@ -45,10 +46,11 @@ async function getOpenPort(): Promise<number> {
   })
 }
 
-async function waitForServer(port: number, maxAttempts = 30): Promise<boolean> {
+async function waitForServer(port: number, maxAttempts = 30, baseUrl?: string): Promise<boolean> {
+  const url = baseUrl || `http://127.0.0.1:${port}`
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/session`, {
+      const response = await fetch(`${url}/session`, {
         signal: AbortSignal.timeout(2000),
       })
       if (response.status < 500) {
@@ -59,12 +61,60 @@ async function waitForServer(port: number, maxAttempts = 30): Promise<boolean> {
     }
     await new Promise((r) => setTimeout(r, 1000))
   }
-  throw new Error(`Server did not start on port ${port} after ${maxAttempts} seconds`)
+  throw new Error(`Server did not start at ${url} after ${maxAttempts} seconds`)
+}
+
+/**
+ * Connect to an already-running OpenCode server
+ */
+export async function connectToServer(baseUrl: string, directory: string): Promise<OpenCodeServer> {
+  // Reuse existing server if connected to same URL
+  if (server && server.baseUrl === baseUrl) {
+    log("info", "Reusing existing connection", { baseUrl })
+    return server
+  }
+
+  log("info", "Connecting to external OpenCode server", { baseUrl })
+
+  // Extract port from URL
+  const url = new URL(baseUrl)
+  const port = Number(url.port) || (url.protocol === "https:" ? 443 : 80)
+
+  // Wait for server to be ready
+  await waitForServer(port, 30, baseUrl)
+  log("info", "External server ready", { baseUrl })
+
+  const fetchWithTimeout = (request: Request) =>
+    fetch(request, {
+      // @ts-ignore - bun supports timeout
+      timeout: false,
+    })
+
+  const client = createOpencodeClient({
+    baseUrl,
+    fetch: fetchWithTimeout,
+  })
+
+  const clientV2 = createOpencodeClientV2({
+    baseUrl,
+    fetch: fetchWithTimeout as typeof fetch,
+  })
+
+  server = {
+    process: null,  // No process - external server
+    client,
+    clientV2,
+    port,
+    directory,
+    baseUrl,
+  }
+
+  return server
 }
 
 export async function startServer(directory: string): Promise<OpenCodeServer> {
   // Reuse existing server if running
-  if (server && !server.process.killed) {
+  if (server?.process && !server.process.killed) {
     log("info", "Reusing existing server", { directory, port: server.port })
     return server
   }
@@ -152,6 +202,7 @@ export async function startServer(directory: string): Promise<OpenCodeServer> {
     clientV2,
     port,
     directory,
+    baseUrl,
   }
 
   return server
@@ -163,7 +214,7 @@ export function getServer(): OpenCodeServer | null {
 
 export async function stopServer(): Promise<void> {
   if (server) {
-    server.process.kill()
+    server.process?.kill()
     log("info", "Server stopped", { directory: server.directory })
     server = null
   }
