@@ -44,7 +44,7 @@ npm install -g opencode-telegram-mirror
    opencode-telegram-mirror .
    ```
 
-That's it! Your OpenCode sessions will now be mirrored to Telegram.
+That's it! Your OpenCode session will now be mirrored to Telegram.
 
 ## How it works
 
