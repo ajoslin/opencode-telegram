@@ -9,7 +9,9 @@
   },
   "scripts": {
     "start": "bun run src/main.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:mock-server": "bun run test/mock-server.ts",
+    "test:run": "bun run test/run-test.ts"
   },
   "dependencies": {
     "@opencode-ai/sdk": "latest",

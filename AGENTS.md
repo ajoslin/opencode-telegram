@@ -24,8 +24,63 @@ Typecheck:
   - `bun run typecheck`
 
 ## Tests
-- No test runner is configured in either package.
-- Single-test command: N/A (document here if tests are added).
+
+The test harness enables **autonomous testing feedback loops** by mocking external dependencies. Instead of hitting real Telegram servers, the bot talks to a local mock server that:
+1. Serves pre-recorded updates from fixture files
+2. Captures all outgoing Telegram API calls for inspection
+
+This allows fully automated test runs without any external dependencies.
+
+### Test Files
+- `test/fixtures/sample-updates.json` - Mock Telegram updates
+- `test/mock-server.ts` - Mock server (serves updates + captures API calls)
+- `test/run-test.ts` - Test runner (starts mock server + bot together)
+
+### Running Tests
+
+**Quick test run** (30 seconds, uses mock OpenCode if no OPENCODE_URL):
+```bash
+bun run test:run
+```
+
+**With custom timeout**:
+```bash
+bun run test/run-test.ts test/fixtures/sample-updates.json 60
+```
+
+**Manual testing** (two terminals):
+```bash
+# Terminal 1: Start mock server
+bun run test:mock-server
+
+# Terminal 2: Start bot with mock endpoints
+TELEGRAM_UPDATES_URL=http://localhost:3456/updates \
+TELEGRAM_SEND_URL=http://localhost:3456 \
+TELEGRAM_BOT_TOKEN=test:token \
+TELEGRAM_CHAT_ID=-1003546563617 \
+bun run start
+```
+
+### Mock Server Control Endpoints
+
+The mock server at `http://localhost:3456` provides:
+- `GET /_control?action=status` - Server stats (updates served, requests captured)
+- `GET /_control?action=captured` - All captured Telegram API requests
+- `POST /_control?action=inject` - Inject new updates dynamically
+- `GET /_control?action=reset` - Reset update pointer and clear captured requests
+
+### Adding Test Fixtures
+
+Add new fixture files to `test/fixtures/` as JSON arrays of updates in the DO format:
+```json
+[
+  {
+    "update_id": 123,
+    "chat_id": "-1003546563617",
+    "payload": { "update_id": 123, "message": { ... } }
+  }
+]
+```
 
 ## Single-File Checks
 - Root: `bun run typecheck` validates `src/**/*`.

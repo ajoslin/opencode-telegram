@@ -245,6 +245,7 @@ async function main() {
 		chatId: config.chatId,
 		threadId: config.threadId,
 		log,
+		baseUrl: config.sendUrl,
 	})
 
 	// Verify bot
@@ -663,6 +664,29 @@ async function handleTelegramMessage(
 			msgThreadId: msg.message_thread_id,
 			stateThreadId: state.threadId,
 		})
+		return
+	}
+
+	// Handle "x" as interrupt (like double-escape in opencode TUI)
+	if (messageText?.trim().toLowerCase() === "x") {
+		log("info", "Received interrupt command 'x'")
+		if (state.sessionId) {
+			const abortResult = await state.server.clientV2.session.abort({
+				sessionID: state.sessionId,
+				directory: state.directory,
+			})
+			if (abortResult.data) {
+				await state.telegram.sendMessage("Interrupted.")
+			} else {
+				log("error", "Failed to abort session", {
+					sessionId: state.sessionId,
+					error: abortResult.error,
+				})
+				await state.telegram.sendMessage("Failed to interrupt the session.")
+			}
+		} else {
+			await state.telegram.sendMessage("No active session to interrupt.")
+		}
 		return
 	}
 

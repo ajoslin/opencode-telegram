@@ -10,6 +10,7 @@ export interface TelegramConfig {
   chatId: string // Channel, group, or DM chat ID
   threadId?: number // Optional thread/topic ID for forum groups
   log?: LogFn // Optional logger function
+  baseUrl?: string // Optional custom base URL (for testing)
 }
 
 export interface TelegramPhotoSize {
@@ -109,10 +110,9 @@ export class TelegramClient {
   private log: LogFn
 
   constructor(config: TelegramConfig) {
-    this.baseUrl = `https://api.telegram.org/bot${config.botToken}`
+    this.baseUrl = config.baseUrl ?? `https://api.telegram.org/bot${config.botToken}`
     this.chatId = config.chatId
     this.threadId = config.threadId
-    // Default to no-op logger if none provided
     this.log = config.log ?? (() => {})
   }
 
