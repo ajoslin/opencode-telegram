@@ -2,6 +2,24 @@
 
 A standalone bot that mirrors OpenCode sessions to Telegram topics, enabling collaborative AI-assisted coding conversations in Telegram.
 
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **📱 Real-time Streaming** | Live OpenCode responses with typing indicators and rich formatting |
+| **🎯 Interactive Controls** | Interrupt, mode switching (plan/build), and session control via buttons |
+| **❓ Smart Questions** | Multiple-choice questions via Telegram inline buttons with freetext fallback |
+| **🔒 Permission Management** | File access permissions requested through interactive Telegram buttons |
+| **📋 Slash Commands** | `/interrupt`, `/plan`, `/build`, `/review`, `/branch` for full session control |
+| **🔍 Diff Viewer** | Automatic diff generation with syntax highlighting and shareable links |
+| **🧵 Thread Support** | Full Telegram forum thread support with topic management |
+| **📸 Media Support** | Send images and photos as prompts to OpenCode |
+| **💾 Session Persistence** | Resume coding sessions across devices and restarts |
+| **🎨 Rich Formatting** | Markdown, code blocks, inline diffs, and media previews |
+| **🔄 Multi-instance** | Run multiple mirrors for different sessions/channels |
+| **📊 Status Updates** | Live task progress and session state in pinned messages |
+| **🌐 Cross-platform** | Works on any device with Telegram - no app restrictions |
+
 ## Installation
 
 ```bash
