@@ -836,11 +836,13 @@ async function handleTelegramMessage(
 	> = []
 
 	if (msg.photo && msg.photo.length > 0) {
+		const stopTyping = state.telegram.startTyping()
 		const bestPhoto = msg.photo[msg.photo.length - 1]
 		const dataUrlResult = await state.telegram.downloadFileAsDataUrl(
 			bestPhoto.file_id,
 			"image/jpeg"
 		)
+		stopTyping()
 		if (dataUrlResult.status === "ok") {
 			parts.push({
 				type: "file",
@@ -862,6 +864,8 @@ async function handleTelegramMessage(
 			return
 		}
 
+		const stopTyping = state.telegram.startTyping()
+
 		log("info", "Processing voice message", {
 			duration: msg.voice.duration,
 			fileId: msg.voice.file_id,
@@ -869,6 +873,7 @@ async function handleTelegramMessage(
 
 		const fileUrlResult = await state.telegram.getFileUrl(msg.voice.file_id)
 		if (fileUrlResult.status === "error") {
+			stopTyping()
 			log("error", "Failed to get voice file URL", {
 				error: fileUrlResult.error.message,
 			})
@@ -878,6 +883,7 @@ async function handleTelegramMessage(
 
 		const audioResponse = await fetch(fileUrlResult.value)
 		if (!audioResponse.ok) {
+			stopTyping()
 			log("error", "Failed to download voice file", { status: audioResponse.status })
 			await state.telegram.sendMessage("Failed to download voice message.")
 			return
@@ -885,6 +891,7 @@ async function handleTelegramMessage(
 
 		const audioBuffer = await audioResponse.arrayBuffer()
 		const transcriptionResult = await transcribeVoice(audioBuffer, log)
+		stopTyping()
 
 		if (transcriptionResult.status === "error") {
 			log("error", "Voice transcription failed", {
@@ -1071,6 +1078,23 @@ async function handleOpenCodeEvent(state: BotState, ev: OpenCodeEvent) {
 
 	if (!sessionId || sessionId !== state.sessionId) return
 
+	// Stop typing when session becomes idle
+	if (ev.type === "session.idle") {
+		for (const [key, entry] of state.typingIndicators) {
+			if (key.startsWith(`${sessionId}:`)) {
+				if (entry.timeout) clearTimeout(entry.timeout)
+				entry.stop()
+				state.typingIndicators.delete(key)
+			}
+		}
+		return
+	}
+
+	// Send typing action on every session event to keep indicator active during long operations
+	if (ev.type !== "session.error") {
+		state.telegram.sendTypingAction()
+	}
+
 	if (sessionTitle && state.threadId) {
 		const trimmedTitle = sessionTitle.trim()
 		const shouldUpdate = trimmedTitle && trimmedTitle !== state.threadTitle
@@ -1140,7 +1164,7 @@ async function handleOpenCodeEvent(state: BotState, ev: OpenCodeEvent) {
 				existing.stop()
 			}
 
-			const stop = state.telegram.startTyping(mode === "tool" ? 2000 : 4000)
+			const stop = state.telegram.startTyping(mode === "tool" ? 1500 : 2500)
 			state.typingIndicators.set(targetKey, { stop, timeout: null, mode })
 		}
 

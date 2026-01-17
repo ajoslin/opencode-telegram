@@ -505,11 +505,12 @@ export class TelegramClient {
    * Send typing indicator to show the bot is working
    * Returns a stop function to cancel the typing indicator
    */
-  startTyping(intervalMs = 4000): () => void {
+  startTyping(intervalMs = 2500): () => void {
     // Send immediately
     this.sendTypingAction()
 
-    // Telegram typing indicator lasts ~5 seconds, so refresh every 4 seconds
+    // Telegram typing indicator lasts ~5 seconds, so refresh every 2.5 seconds by default
+    // to ensure continuous typing even with network delays
     const interval = setInterval(() => {
       this.sendTypingAction()
     }, intervalMs)
