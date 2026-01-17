@@ -1,6 +1,6 @@
 {
 	"name": "opencode-telegram-mirror",
-	"version": "0.4.2",
+	"version": "0.4.3",
 	"description": "Standalone bot that mirrors OpenCode sessions to Telegram topics",
 	"type": "module",
 	"main": "src/main.ts",
